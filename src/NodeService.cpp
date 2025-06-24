@@ -429,7 +429,7 @@ NodeService::ReasonForTermination NodeService::run()
             // Close TCP fallback tunnel if we have direct UDP
             if (! _forceTcpRelay && (_tcpFallbackTunnel)
                 && ((now - _lastDirectReceiveFromGlobal) < (ZT_TCP_FALLBACK_AFTER / 2))) {
-                _phy.close(_tcpFallbackTunnel->sock);
+//                _phy.close(_tcpFallbackTunnel->sock);
             }
 
             // Sync multicast group memberships
