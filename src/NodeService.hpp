@@ -384,7 +384,8 @@ class NodeService {
         const struct sockaddr_storage* addr,
         const void* data,
         unsigned int len,
-        unsigned int ttl);
+        unsigned int ttl,
+		bool isTCPOnly);
 
     void nodeVirtualNetworkFrameFunction(
         uint64_t net_id,
