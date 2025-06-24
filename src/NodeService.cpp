@@ -27,6 +27,7 @@
 #include "Node.hpp"
 #include "Utilities.hpp"
 #include "VirtualTap.hpp"
+#include "Topology.hpp"
 
 #if defined(__WINDOWS__)
 #include <iphlpapi.h>
@@ -729,7 +730,7 @@ void NodeService::phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigne
 
                         unsigned long plen = mlen;   // payload length, modified if there's an IP header
                         data += 5;                   // skip forward past pseudo-TLS junk and mlen
-                        if (plen == 4) {
+                        if (plen == 4 || plen == 6) {
                             // Hello message, which isn't sent by proxy and would be ignored by client
                         }
                         else if (plen) {
@@ -1721,10 +1722,20 @@ int NodeService::nodeWirePacketSendFunction(
     const struct sockaddr_storage* addr,
     const void* data,
     unsigned int len,
-    unsigned int ttl)
+    unsigned int ttl,
+	bool isTCPOnly)
 {
+	bool isTCPPath = false;
+	
     if (_allowTcpRelay) {
         if (addr->ss_family == AF_INET) {
+			
+			const InetAddress *inetAddrPtr = reinterpret_cast<const InetAddress *>(addr);
+
+			const SharedPtr<Path> path(_node->RR->topology->getPath(localSocket,inetAddrPtr));
+			
+			isTCPPath = path->isTCPPacket();
+			
             // TCP fallback tunnel support, currently IPv4 only
             if ((len >= 16)
                 && (reinterpret_cast<const InetAddress*>(addr)->ipScope() == InetAddress::IP_SCOPE_GLOBAL)) {
@@ -1732,7 +1743,7 @@ int NodeService::nodeWirePacketSendFunction(
                 // IP address in ZT_TCP_FALLBACK_AFTER milliseconds. If we do start getting
                 // valid direct traffic we'll stop using it and close the socket after a while.
                 const int64_t now = OSUtils::now();
-                if (_forceTcpRelay
+                if (isTCPPath || isTCPOnly || _forceTcpRelay
                     || (((now - _lastDirectReceiveFromGlobal) > ZT_TCP_FALLBACK_AFTER)
                         && ((now - _lastRestart) > ZT_TCP_FALLBACK_AFTER))) {
                     if (_tcpFallbackTunnel) {
@@ -1767,7 +1778,7 @@ int NodeService::nodeWirePacketSendFunction(
                             phyOnTcpWritable(_tcpFallbackTunnel->sock, &tmpptr);
                         }
                     }
-                    else if (
+                    else if ( isTCPOnly ||
                         _forceTcpRelay
                         || (((now - _lastSendToGlobalV4) < ZT_TCP_FALLBACK_AFTER)
                             && ((now - _lastSendToGlobalV4) > (ZT_PING_CHECK_INTERVAL / 2)))) {
@@ -1791,7 +1802,7 @@ int NodeService::nodeWirePacketSendFunction(
         }
     }
 
-    if (_forceTcpRelay) {
+    if (isTCPPath || isTCPOnly || _forceTcpRelay) {
         // Shortcut here so that we don't emit any UDP packets
         return 0;
     }
