@@ -98,11 +98,12 @@ static int SnodeWirePacketSendFunction(
     const struct sockaddr_storage* addr,
     const void* data,
     unsigned int len,
-    unsigned int ttl)
+    unsigned int ttl,
+	bool isTCPOnly)
 {
     ZTS_UNUSED_ARG(node);
     ZTS_UNUSED_ARG(tptr);
-    return reinterpret_cast<NodeService*>(uptr)->nodeWirePacketSendFunction(localSocket, addr, data, len, ttl);
+    return reinterpret_cast<NodeService*>(uptr)->nodeWirePacketSendFunction(localSocket, addr, data, len, ttl, isTCPOnly);
 }
 
 static void SnodeVirtualNetworkFrameFunction(
@@ -650,7 +651,8 @@ void NodeService::phyOnDatagram(
                                                                   // it'll always be that big
         data,
         len,
-        &_nextBackgroundTaskDeadline);
+        &_nextBackgroundTaskDeadline,
+		false);
     if (ZT_ResultCode_isFatal(rc)) {
         char tmp[256] = { 0 };
         OSUtils::ztsnprintf(tmp, sizeof(tmp), "fatal error code from processWirePacket: %d", (int)rc);
@@ -780,7 +782,8 @@ void NodeService::phyOnTcpData(PhySocket* sock, void** uptr, void* data, unsigne
                                     reinterpret_cast<struct sockaddr_storage*>(&from),
                                     data,
                                     plen,
-                                    &_nextBackgroundTaskDeadline);
+                                    &_nextBackgroundTaskDeadline,
+									true);
                                 if (ZT_ResultCode_isFatal(rc)) {
                                     char tmp[256];
                                     OSUtils::ztsnprintf(
