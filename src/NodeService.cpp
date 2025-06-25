@@ -1743,9 +1743,7 @@ int NodeService::nodeWirePacketSendFunction(
                 // IP address in ZT_TCP_FALLBACK_AFTER milliseconds. If we do start getting
                 // valid direct traffic we'll stop using it and close the socket after a while.
                 const int64_t now = OSUtils::now();
-                if (isTCPPath || isTCPOnly || _forceTcpRelay
-                    || (((now - _lastDirectReceiveFromGlobal) > ZT_TCP_FALLBACK_AFTER)
-                        && ((now - _lastRestart) > ZT_TCP_FALLBACK_AFTER))) {
+                if (isTCPPath || isTCPOnly || _forceTcpRelay) {
                     if (_tcpFallbackTunnel) {
                         bool flushNow = false;
                         {
@@ -1778,10 +1776,7 @@ int NodeService::nodeWirePacketSendFunction(
                             phyOnTcpWritable(_tcpFallbackTunnel->sock, &tmpptr);
                         }
                     }
-                    else if ( isTCPOnly ||
-                        _forceTcpRelay
-                        || (((now - _lastSendToGlobalV4) < ZT_TCP_FALLBACK_AFTER)
-                            && ((now - _lastSendToGlobalV4) > (ZT_PING_CHECK_INTERVAL / 2)))) {
+                    else if ( isTCPPath || isTCPOnly || _forceTcpRelay) {
                         const InetAddress addr(_fallbackRelayAddress);
                         TcpConnection* tc = new TcpConnection();
                         {
