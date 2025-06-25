@@ -42,7 +42,7 @@
 // How often to check for new multicast subscriptions on a tap device
 #define ZT_TAP_CHECK_MULTICAST_INTERVAL 5000
 // How often to check for local interface addresses
-#define ZT_LOCAL_INTERFACE_CHECK_INTERVAL 60000
+#define ZT_LOCAL_INTERFACE_CHECK_INTERVAL 15000
 
 // Attempt to engage TCP fallback after this many ms of no reply to packets sent to global-scope IPs
 #define ZT_TCP_FALLBACK_AFTER 30000
