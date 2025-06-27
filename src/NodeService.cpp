@@ -100,11 +100,13 @@ static int SnodeWirePacketSendFunction(
     const void* data,
     unsigned int len,
     unsigned int ttl,
-	bool isTCPOnly)
+	int verb_as_int)
 {
     ZTS_UNUSED_ARG(node);
     ZTS_UNUSED_ARG(tptr);
-    return reinterpret_cast<NodeService*>(uptr)->nodeWirePacketSendFunction(localSocket, addr, data, len, ttl, isTCPOnly);
+	
+	ZeroTier::Packet::Verb verb = static_cast<ZeroTier::Packet::Verb>(verb_as_int);
+    return reinterpret_cast<NodeService*>(uptr)->nodeWirePacketSendFunction(localSocket, addr, data, len, ttl, verb);
 }
 
 static void SnodeVirtualNetworkFrameFunction(
@@ -1729,9 +1731,11 @@ int NodeService::nodeWirePacketSendFunction(
     const void* data,
     unsigned int len,
     unsigned int ttl,
-	bool isTCPOnly)
+	Packet::Verb verb))
 {
 	bool isTCPPath = false;
+	
+	bool needSendTCP = false;
 	
     if (_allowTcpRelay) {
         if (addr->ss_family == AF_INET) {
@@ -1742,6 +1746,27 @@ int NodeService::nodeWirePacketSendFunction(
 			
 			isTCPPath = path->isTCPPacket();
 			
+			if (verb == Packet::VERB_NOP ||
+				verb == Packet::VERB_HELLO ||
+				verb == Packet::VERB_OK ||
+				verb == Packet::VERB_ERROR ||
+				verb == Packet::VERB_WHOIS ||
+				verb == Packet::VERB_RENDEZVOUS ||
+				verb == Packet::VERB_PUSH_DIRECT_PATHS ||
+				verb == Packet::VERB_PATH_NEGOTIATION_REQUEST ||
+				verb == Packet::VERB_NETWORK_CONFIG_REQUEST ||
+				verb == Packet::VERB_NETWORK_CONFIG ||
+				verb == Packet::VERB_NETWORK_CREDENTIALS) {
+				
+				if (path) {
+					if (!isTCPPath && path->alive(_node->now()) == false) {
+						needSendTCP = true;
+					}
+				} else {
+					needSendTCP = true;
+				}
+			}
+			
             // TCP fallback tunnel support, currently IPv4 only
             if ((len >= 16)
                 && (reinterpret_cast<const InetAddress*>(addr)->ipScope() == InetAddress::IP_SCOPE_GLOBAL)) {
@@ -1749,7 +1774,7 @@ int NodeService::nodeWirePacketSendFunction(
                 // IP address in ZT_TCP_FALLBACK_AFTER milliseconds. If we do start getting
                 // valid direct traffic we'll stop using it and close the socket after a while.
                 const int64_t now = OSUtils::now();
-                if (isTCPPath || isTCPOnly || _forceTcpRelay) {
+                if (isTCPPath || needSendTCP || _forceTcpRelay) {
                     if (_tcpFallbackTunnel) {
                         bool flushNow = false;
                         {
@@ -1782,7 +1807,7 @@ int NodeService::nodeWirePacketSendFunction(
                             phyOnTcpWritable(_tcpFallbackTunnel->sock, &tmpptr);
                         }
                     }
-                    else if ( isTCPPath || isTCPOnly || _forceTcpRelay) {
+                    else if ( isTCPPath || needSendTCP || _forceTcpRelay) {
                         const InetAddress addr(_fallbackRelayAddress);
                         TcpConnection* tc = new TcpConnection();
                         {
@@ -1803,7 +1828,7 @@ int NodeService::nodeWirePacketSendFunction(
         }
     }
 
-    if (isTCPPath || isTCPOnly || _forceTcpRelay) {
+    if (isTCPPath || _forceTcpRelay) {
         // Shortcut here so that we don't emit any UDP packets
         return 0;
     }

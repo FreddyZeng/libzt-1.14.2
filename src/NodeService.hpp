@@ -385,7 +385,7 @@ class NodeService {
         const void* data,
         unsigned int len,
         unsigned int ttl,
-		bool isTCPOnly);
+		Packet::Verb);
 
     void nodeVirtualNetworkFrameFunction(
         uint64_t net_id,
