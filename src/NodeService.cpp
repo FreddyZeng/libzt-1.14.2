@@ -366,8 +366,6 @@ NodeService::ReasonForTermination NodeService::run()
         int64_t lastLocalInterfaceAddressCheck =
             (clockShouldBe - ZT_LOCAL_INTERFACE_CHECK_INTERVAL) + 15000;   // do this in 15s to give portmapper time to
         int64_t lastOnline = OSUtils::now();
-		bool firstStart = true;
-		
         for (;;) {
             _run_m.lock();
             if (! _run) {
@@ -390,10 +388,6 @@ NodeService::ReasonForTermination NodeService::run()
                 _lastRestart = now;
                 restarted = true;
             }
-			if (firstStart) {
-				restarted = true;
-				firstStart = false;
-			}
 
             // If secondary port is not configured to a constant value and we've been offline for a while,
             // bind a new secondary port. This is a workaround for a "coma" issue caused by buggy NATs that stop
