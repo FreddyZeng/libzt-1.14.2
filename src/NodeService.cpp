@@ -1731,7 +1731,7 @@ int NodeService::nodeWirePacketSendFunction(
     const void* data,
     unsigned int len,
     unsigned int ttl,
-	Packet::Verb verb))
+	Packet::Verb verb)
 {
 	bool isTCPPath = false;
 	
