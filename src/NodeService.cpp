@@ -1728,11 +1728,16 @@ int NodeService::nodeWirePacketSendFunction(
 	Packet::Verb verb)
 {
 	
-	const InetAddress *inetAddrPtr = reinterpret_cast<const InetAddress *>(addr);
-	const SharedPtr<Path> path(_node->RR->topology->getPath(localSocket,inetAddrPtr));
+//	const InetAddress *inetAddrPtr = reinterpret_cast<const InetAddress *>(addr);
+//	const SharedPtr<Path> path(_node->RR->topology->getPath(localSocket,inetAddrPtr));
+//	
+//	bool isTCPPath = path->isTCPPacket();
 	
-	bool isTCPPath = path->isTCPPacket();
+	bool isForceTCP = false;
 	
+	if (verb == Packet::VERB_FORCETCP) {
+		isForceTCP = true;
+	}
 	
 	bool result = -1;
 	
@@ -1753,12 +1758,11 @@ int NodeService::nodeWirePacketSendFunction(
 			else {
 				result = ((_binder.udpSendAll(_phy, addr, data, len, ttl)) ? 0 : -1);
 			}
-	}
-	
-	bool returnResult = result;
-	
-	if (returnResult == -1 || _forceTcpRelay) {
-		// udp 发送失败, 使用tcp发送
+		
+		return result;
+	} else {
+		
+		bool returnResult = -1;
 		
 #ifdef ZT_TCP_FALLBACK_RELAY
 		if (_allowTcpRelay) {
@@ -1832,10 +1836,12 @@ int NodeService::nodeWirePacketSendFunction(
 			}
 	
 #endif // ZT_TCP_FALLBACK_RELAY
+
+		
+		return returnResult;
+
 		
 	}
-	
-	return returnResult;
 
 }
 
