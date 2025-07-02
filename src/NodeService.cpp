@@ -2199,6 +2199,7 @@ void NodeService::allowTcpRelay(bool enabled)
 void NodeService::forceTcpRelay(bool enabled)
 {
     _forceTcpRelay = enabled;
+	_node->_forceTcpRelay = _forceTcpRelay;
 }
 
 int NodeService::setRoots(const void* rootsData, unsigned int len)
